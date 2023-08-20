@@ -68,7 +68,7 @@ done
 ####################
 # Fetch VLC source #
 ####################
-VLC_TESTED_HASH=4733d1cced9c51ca40bc04d578550c6b917fe2fe
+VLC_TESTED_HASH=beac724a9cda41c40eb48614d8ee170f3d3bb939
 VLC_REPOSITORY=https://github.com/fegauthier/vlc.git
 VLC_BRANCH=3.0.x
 if [ ! -d "vlc" ]; then
