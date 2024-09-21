@@ -588,6 +588,7 @@ public class Media extends VLCObject<IMedia.Event> implements IMedia {
     }
 
     /* JNI */
+    private native void nativeNewFromVLCMediaStream(ILibVLC ILibVLC);
     private native void nativeNewFromPath(ILibVLC ILibVLC, String path);
     private native void nativeNewFromLocation(ILibVLC ILibVLC, String location);
     private native void nativeNewFromFd(ILibVLC ILibVLC, FileDescriptor fd);

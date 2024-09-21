@@ -163,6 +163,12 @@ Media_nativeNewFromCb(JNIEnv *env, jobject thiz, jobject libVlc, jstring jmrl,
 }
 
 void
+Java_org_videolan_libvlc_Media_nativeNewFromVLCMediaStream(JNIEnv *env, jobject thiz,
+                                                 jobject libVlc)
+{
+}
+
+void
 Java_org_videolan_libvlc_Media_nativeNewFromPath(JNIEnv *env, jobject thiz,
                                                  jobject libVlc, jstring jpath)
 {

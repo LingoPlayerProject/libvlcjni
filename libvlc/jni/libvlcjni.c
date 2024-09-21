@@ -335,7 +335,7 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
 #undef GET_CLASS
 #undef GET_ID
 
-    LOGD("JNI interface loaded.");
+    LOGI("JNI interface loaded.");
     return VLC_JNI_VERSION;
 }
 
