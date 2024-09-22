@@ -32,6 +32,10 @@ public class StubMedia extends StubVLCObject<IMedia.Event> implements IMedia {
         mILibVLC = ILibVLC;
     }
 
+    public StubMedia(ILibVLC ILibVLC,  IVLCMediaSource mediaSource) {
+        mILibVLC = ILibVLC;
+    }
+
     @Override
     public long getDuration() {
         return 0;

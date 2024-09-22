@@ -30,4 +30,9 @@ public class MediaFactory implements IMediaFactory {
     public IMedia getFromAssetFileDescriptor(ILibVLC ILibVLC, AssetFileDescriptor assetFileDescriptor) {
         return new Media(ILibVLC, assetFileDescriptor);
     }
+
+    @Override
+    public IMedia getFromVLCMediaSource(ILibVLC ILibVLC, IVLCMediaSource mediaSource) {
+        return new Media(ILibVLC, mediaSource);
+    }
 }

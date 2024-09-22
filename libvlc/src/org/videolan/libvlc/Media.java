@@ -28,6 +28,7 @@ import androidx.annotation.Nullable;
 import org.videolan.libvlc.interfaces.ILibVLC;
 import org.videolan.libvlc.interfaces.IMedia;
 import org.videolan.libvlc.interfaces.IMediaList;
+import org.videolan.libvlc.interfaces.IVLCMediaSource;
 import org.videolan.libvlc.util.AndroidUtil;
 import org.videolan.libvlc.util.HWDecoderUtil;
 import org.videolan.libvlc.util.VLCUtil;
@@ -116,7 +117,7 @@ public class Media extends VLCObject<IMedia.Event> implements IMedia {
     private boolean mCodecOptionSet = false;
     private boolean mFileCachingSet = false;
     private boolean mNetworkCachingSet = false;
-
+    private IVLCMediaSource mMediaSource = null;
 
     /**
      * Create a Media from libVLC and a local path starting with '/'.
@@ -166,6 +167,21 @@ public class Media extends VLCObject<IMedia.Event> implements IMedia {
         long length = afd.getLength();
         nativeNewFromFdWithOffsetLength(ILibVLC, afd.getFileDescriptor(), offset, length);
         mUri = VLCUtil.UriFromMrl(nativeGetMrl());
+    }
+
+    /**
+     * Create a Media from IVLCMediaSource
+     *
+     * @param ILibVLC a valid LibVLC
+     * @param mediaSource mediaSource
+     */
+    public Media(ILibVLC ILibVLC, IVLCMediaSource mediaSource) {
+        super(ILibVLC);
+        if (mediaSource == null) {
+            throw new IllegalArgumentException("mediaSource is null");
+        }
+        this.mMediaSource = mediaSource;
+        nativeNewFromVLCMediaSource(ILibVLC, mMediaSource);
     }
 
     /**
@@ -588,7 +604,7 @@ public class Media extends VLCObject<IMedia.Event> implements IMedia {
     }
 
     /* JNI */
-    private native void nativeNewFromVLCMediaStream(ILibVLC ILibVLC);
+    private native void nativeNewFromVLCMediaSource(ILibVLC ILibVLC, IVLCMediaSource mediaSource);
     private native void nativeNewFromPath(ILibVLC ILibVLC, String path);
     private native void nativeNewFromLocation(ILibVLC ILibVLC, String location);
     private native void nativeNewFromFd(ILibVLC ILibVLC, FileDescriptor fd);

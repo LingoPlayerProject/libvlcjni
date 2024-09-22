@@ -26,6 +26,7 @@
 #include "utils.h"
 
 #define META_MAX 25
+#define THREAD_NAME_MEDIA_CB "media-cb"
 
 struct media_cb
 {
@@ -162,10 +163,162 @@ Media_nativeNewFromCb(JNIEnv *env, jobject thiz, jobject libVlc, jstring jmrl,
     Media_nativeNewCommon(env, thiz, p_obj);
 }
 
-void
-Java_org_videolan_libvlc_Media_nativeNewFromVLCMediaStream(JNIEnv *env, jobject thiz,
-                                                 jobject libVlc)
+void Java_org_videolan_libvlc_Media_nativeNewFromVLCMediaSource(JNIEnv *env, jobject thiz,
+                                                                jobject libVlc, jobject mediaSource)
 {
+    vlcjni_object *p_obj;
+    p_obj = VLCJniObject_newFromJavaLibVlc(env, thiz, libVlc);
+    if (!p_obj)
+    {
+        return;
+    }
+
+    p_obj->u.p_m =
+        libvlc_media_new_callbacks(p_obj->p_libvlc,
+                                   media_source_cb_open,
+                                   media_source_cb_read,
+                                   media_source_cb_seek,
+                                   media_source_cb_close,
+                                   p_obj);
+
+    Media_nativeNewCommon(env, thiz, p_obj)
+}
+
+static int
+media_source_cb_open(void *opaque, void **datap, uint64_t *sizep)
+{
+    vlcjni_object *p_obj = opaque;
+    JNIEnv *env = NULL;
+    if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
+    {
+        LOGE("jni get env failed when media_source_cb_open\n");
+        return -1;
+    }
+    jobject mediaSource = NULL;
+    if (p_obj->p_owner && p_obj->p_owner->weak)
+    {
+        mediaSource = (*env)->GetObjectField(env, p_obj->p_owner->weak, fields.Media.mMediaSourceID);
+    }
+    if (!mediaSource)
+    {
+        LOGE("unable to get mediaSource\n");
+        return -2;
+    }
+
+    jobject openedSource = (*env)->CallObjectMethod(env, mediaSource, fields.IVLCMediaSource.openID);
+    if ((*env)->ExceptionCheck(env))
+    {
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);
+        return -3;
+    }
+
+    jlong len = (*env)->CallObjectMethod(env, openedSource, fields.IVLCMediaSource.OpendSource.lengthID);
+    if ((*env)->ExceptionCheck(env))
+    {
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);
+        return -4;
+    }
+
+    *sizep = (uint64_t)len;
+    jobject globalOpenedSource = (*env)->NewGlobalRef(env, openedSource);
+    if (globalOpenedSource == NULL)
+    {
+        LOGE("Failed to create global reference for openedSource\n");
+        return -5;
+    }
+
+    *datap = globalOpenedSource;
+
+    return 0;
+}
+
+static ssize_t
+media_source_cb_read(void *opaque, unsigned char *buf, size_t len)
+{
+    JNIEnv *env = NULL;
+    if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
+    {
+        LOGE("jni get env failed when media_source_cb_read\n");
+        return -1;
+    }
+    jobject source = opaque;
+    jbyteArray array = (*env)->NewByteArray(env, (jsize) len);
+    if (!array)
+    {
+        LOGE("jni NewByteArray failed\n");
+        return -1;
+    }
+
+    jint readSize = (*env)->CallIntMethod(env, source, fileds.IVLCMediaSource.OpendSource.readID, array, (jint) len);
+    if ((*env)->ExceptionCheck(env))
+    {
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);
+        return -1;
+    }
+    if (readSize != 0)
+    {
+        LOGE("IVLCMediaSource error: read returns %d.\n", readSize);
+        return -1;
+    }
+    if (readSize == 0)
+    {
+        return 0;
+    }
+    
+    jbyte *elements = (*env)->GetByteArrayElements(env, array, 0);
+    if (elements == NULL)
+    {
+        LOGE("Failed to get byte array elements\n");
+        return -1;
+    }
+
+    memcpy(buf, elements, readSize);
+    (*env)->ReleaseByteArrayElements(env, array, elements, 0);
+
+    return readSize;
+}
+
+static int
+media_source_cb_seek(void *opaque, uint64_t offset)
+{
+    JNIEnv *env = NULL;
+    if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
+    {
+        LOGE("jni get env failed when media_source_cb_seek\n");
+        return -1;
+    }
+    jobject source = opaque;
+
+    jint seekRet = (*env)->CallIntMethod(env, source, fileds.IVLCMediaSource.OpendSource.seekID, (jlong) offset);
+    if ((*env)->ExceptionCheck(env))
+    {
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);
+        return -1;
+    }
+    if (seekRet != 0) {
+        LOGE("IVLCMediaSource error: read returns %d.\n", seekRet);
+        return -1;
+    }
+
+    return 0;
+}
+
+static void
+media_source_cb_close(void *opaque)
+{
+    JNIEnv *env = NULL;
+    if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
+    {
+        LOGE("jni get env failed when media_source_cb_close\n");
+        return;
+    }
+    (*env)->CallVoidMethod(env, (jobject)opaque, fileds.IVLCMediaSource.OpendSource.closeID);
+    (*env)->ExceptionClear(env);
+    (*env)->DeleteGlobalRef(env, (jobject)opaque);
 }
 
 void

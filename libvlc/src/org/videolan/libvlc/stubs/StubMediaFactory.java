@@ -29,4 +29,9 @@ public class StubMediaFactory implements IMediaFactory {
     public IMedia getFromAssetFileDescriptor(ILibVLC ILibVLC, AssetFileDescriptor assetFileDescriptor) {
         return new StubMedia(ILibVLC, assetFileDescriptor);
     }
+
+    @Override
+    public IMedia getFromVLCMediaSource(ILibVLC ILibVLC, IVLCMediaSource mediaSource) {
+        return new StubMedia(ILibVLC, mediaSource);
+    }
 }

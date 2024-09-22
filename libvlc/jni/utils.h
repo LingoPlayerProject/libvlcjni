@@ -64,6 +64,7 @@ struct fields {
         } Slave;
 
         jclass clazz;
+        jfieldID mMediaSourceID;
         jmethodID createAudioTrackFromNativeID;
         jmethodID createVideoTrackFromNativeID;
         jmethodID createSubtitleTrackFromNativeID;
@@ -115,6 +116,17 @@ struct fields {
         jmethodID cancelFromNativeID;
         jmethodID updateProgressFromNativeID;
     } Dialog;
+    struct {
+        struct {
+            jclass clazz;
+            jmethodID lengthID;
+            jmethodID readID;
+            jmethodID seekID;
+            jmethodID closeID;
+        } OpendSource;  
+        jclass clazz;
+        jmethodID openID;
+    } IVLCMediaSource;
 };
 
 static inline jstring vlcNewStringUTF(JNIEnv* env, const char* psz_string)

@@ -195,6 +195,10 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
               "org/videolan/libvlc/RendererDiscoverer$Description", true);
     GET_CLASS(fields.Dialog.clazz,
               "org/videolan/libvlc/Dialog", true);
+    GET_CLASS(fields.IVLCMediaSource.clazz,
+              "org/videolan/libvlc/interfaces/IVLCMediaSource", true);
+    GET_CLASS(fields.IVLCMediaSource.OpendSource.clazz,
+              "org/videolan/libvlc/interfaces/IVLCMediaSource$OpendSource", true);
 
     GET_ID(GetFieldID,
            fields.VLCObject.mInstanceID,
@@ -205,6 +209,11 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
            fields.MediaPlayer.Equalizer.mInstanceID,
            fields.MediaPlayer.Equalizer.clazz,
            "mInstance", "J");
+
+    GET_ID(GetFieldID,
+           fields.Media.mMediaSourceID,
+           fields.IVLCMediaSource.clazz,
+           "mMediaSource", "Lorg/videolan/libvlc/interfaces/IVLCMediaSource;");
 
     GET_ID(GetMethodID,
            fields.VLCObject.dispatchEventFromNativeID,
@@ -332,6 +341,36 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
            "updateProgressFromNative",
            "(Lorg/videolan/libvlc/Dialog;FLjava/lang/String;)V");
 
+    GET_ID(GetMethodID,
+           fields.IVLCMediaSource.openID,
+           fields.IVLCMediaSource.clazz,
+           "open",
+           "()Lorg/videolan/libvlc/interfaces/IVLCMediaSource$OpendSource;");
+
+    GET_ID(GetMethodID,
+           fields.IVLCMediaSource.OpendSource.lengthID,
+           fields.IVLCMediaSource.OpendSource.clazz,
+           "length",
+           "()J");
+
+    GET_ID(GetMethodID,
+           fields.IVLCMediaSource.OpendSource.readID,
+           fields.IVLCMediaSource.OpendSource.clazz,
+           "read",
+           "([BI)I");
+
+    GET_ID(GetMethodID,
+           fields.IVLCMediaSource.OpendSource.seekID,
+           fields.IVLCMediaSource.OpendSource.clazz,
+           "seek",
+           "(J)I");
+
+    GET_ID(GetMethodID,
+           fields.IVLCMediaSource.OpendSource.closeID,
+           fields.IVLCMediaSource.OpendSource.clazz,
+           "close",
+           "()V");
+
 #undef GET_CLASS
 #undef GET_ID
 
@@ -366,6 +405,8 @@ void JNI_OnUnload(JavaVM* vm, void* reserved)
     (*env)->DeleteGlobalRef(env, fields.RendererDiscoverer.clazz);
     (*env)->DeleteGlobalRef(env, fields.RendererDiscoverer.Description.clazz);
     (*env)->DeleteGlobalRef(env, fields.Dialog.clazz);
+    (*env)->DeleteGlobalRef(env, fields.IVLCMediaSource.clazz);
+    (*env)->DeleteGlobalRef(env, fields.IVLCMediaSource.OpendSource.clazz);
 
     pthread_key_delete(jni_env_key);
 
