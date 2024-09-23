@@ -6,6 +6,7 @@ import android.net.Uri;
 import org.videolan.libvlc.interfaces.ILibVLC;
 import org.videolan.libvlc.interfaces.IMedia;
 import org.videolan.libvlc.interfaces.IMediaList;
+import org.videolan.libvlc.interfaces.IVLCMediaSource;
 
 import java.io.FileDescriptor;
 

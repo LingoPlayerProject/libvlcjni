@@ -1,26 +1,32 @@
 package org.videolan.libvlc.interfaces;
 
+import java.io.IOException;
+
 public interface IVLCMediaSource {
 
-    public interface OpendSource {
-        long length();
+    public interface OpenedSource {
+        /**
+         * Total length of the file
+         */
+        long length() throws IOException;
 
         /**
          * read data from a custom bitstream input media.
-         * @return strictly positive number of bytes read, 0 on end-of-stream,
-         *          or -1 on non-recoverable error
+         * @return strictly positive number of bytes read, 0 on end-of-stream
          */
-        int read(byte[] buf, int len);
+        int read(byte[] buf, int len) throws IOException;
 
         /**
          * seek a custom bitstream input media.
          * @param offset absolute byte offset to seek to
-         * @return 0 on success, -1 on error.
          */
-        int seek(long offset)
+        void seek(long offset) throws IOException;
 
         void close();
     }
 
-    OpendSource open();
+    /**
+     * @return OpenedSource, libvlc will take care of the close of OpenedSource
+     */
+    OpenedSource open() throws IOException;
 }

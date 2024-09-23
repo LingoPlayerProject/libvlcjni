@@ -28,16 +28,6 @@
 #define THREAD_NAME "VlcObject"
 extern JNIEnv *jni_get_env(const char *name);
 
-struct vlcjni_object_owner
-{
-    jweak weak;
-
-    libvlc_event_manager_t *p_event_manager;
-    const int *p_events;
-
-    event_cb pf_event_cb;
-};
-
 static vlcjni_object *
 VLCJniObject_getInstanceInternal(JNIEnv *env, jobject thiz)
 {

@@ -28,6 +28,8 @@
 #define META_MAX 25
 #define THREAD_NAME_MEDIA_CB "media-cb"
 
+JNIEnv *jni_get_env(const char *name);
+
 struct media_cb
 {
     int fd;
@@ -163,6 +165,194 @@ Media_nativeNewFromCb(JNIEnv *env, jobject thiz, jobject libVlc, jstring jmrl,
     Media_nativeNewCommon(env, thiz, p_obj);
 }
 
+static int
+media_source_cb_open(void *opaque, void **datap, uint64_t *sizep)
+{
+    int ret = 0;
+    vlcjni_object *p_obj = opaque;
+    JNIEnv *env = NULL;
+    if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
+    {
+        LOGE("jni get env failed when media_source_cb_open\n");
+        return -1;
+    }
+    jobject mediaSource = NULL;
+    if (p_obj->p_owner && p_obj->p_owner->weak)
+    {
+        mediaSource = (*env)->GetObjectField(env, p_obj->p_owner->weak, fields.Media.mMediaSourceID);
+    }
+    if (!mediaSource)
+    {
+        LOGE("unable to get mediaSource object\n");
+        return -1;
+    }
+
+    jobject openedSource = (*env)->CallObjectMethod(env, mediaSource, fields.IVLCMediaSource.openID);
+    (*env)->DeleteLocalRef(env, mediaSource); 
+    mediaSource = NULL;
+    if ((*env)->ExceptionCheck(env))
+    {
+        LOGE("open source failed.\n");
+        ret = -1;
+        goto error;
+    }
+
+    if (!openedSource) 
+    {
+        LOGE("IVLCMediaSource error: open returns null.\n");
+        ret = -1;
+        goto error;
+    }
+
+    jlong len = (*env)->CallLongMethod(env, openedSource, fields.IVLCMediaSource.OpenedSource.lengthID);
+    if ((*env)->ExceptionCheck(env))
+    {
+        ret = -1;
+        goto error;
+    }
+
+    *sizep = (uint64_t)len;
+    jobject globalOpenedSource = (*env)->NewGlobalRef(env, openedSource);
+    if (globalOpenedSource == NULL)
+    {
+        LOGE("Failed to create global reference for openedSource\n");
+        ret = -1;
+        goto error;
+    }
+    *datap = globalOpenedSource;
+
+error:
+    if ((*env)->ExceptionCheck(env))
+    {
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);
+    }
+    if (openedSource) {
+        // Manual release is required because this is a C callback and there is no JNI call to perform automatic release
+        if (ret != 0) 
+        {
+            (*env)->CallVoidMethod(env, openedSource, fields.IVLCMediaSource.OpenedSource.closeID);
+        }
+        (*env)->DeleteLocalRef(env, openedSource); 
+    }
+    return ret;
+}
+
+static ssize_t
+media_source_cb_read(void *opaque, unsigned char *buf, size_t len)
+{
+#define __MIN(a, b) ( ((a) < (b)) ? (a) : (b) )
+    JNIEnv *env = NULL;
+    if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
+    {
+        LOGE("jni get env failed when media_source_cb_read\n");
+        return -1;
+    }
+    jobject source = opaque;
+    jbyteArray array = NULL;
+
+    ssize_t ret = 0;
+    jbyte *elements = NULL;
+    jint readSize = 0;
+    while (len > 0) 
+    {
+        //Read in batches to reduce peak memory usage in Java
+        int tmpSize = __MIN((jint) len, 1024 * 1024);
+        array = (*env)->NewByteArray(env, (jsize) tmpSize);
+        if (!array)
+        {
+            LOGE("jni NewByteArray failed\n");
+            break;
+        }
+        readSize = (*env)->CallIntMethod(env, source, fields.IVLCMediaSource.OpenedSource.readID, array, (jint) tmpSize);
+        if ((*env)->ExceptionCheck(env))
+        {
+            LOGE("IVLCMediaSource read failed\n");
+            ret = -1;
+            break;
+        }
+        if (readSize == 0)
+        {
+            LOGI("IVLCMediaSource read EOF\n");
+            ret = 0;
+            break;
+        }
+        if (readSize < 0 || readSize > len)
+        {
+            LOGI("IVLCMediaSource error, read returned invalid len %s\n", readSize);
+            ret = -1;
+            break;
+        }
+        elements = (*env)->GetByteArrayElements(env, array, 0);
+        if (elements == NULL)
+        {
+            LOGE("Failed to get byte array elements\n");
+            ret = -1;
+            break;
+        }
+        memcpy(buf + ret, elements, readSize);
+        ret += (ssize_t) readSize;
+        len -= readSize;
+        (*env)->ReleaseByteArrayElements(env, array, elements, 0);
+        elements = NULL;
+        (*env)->DeleteLocalRef(env, array); 
+        array = NULL;
+    }
+
+    if ((*env)->ExceptionCheck(env))
+    {
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);
+    }
+    if (elements) 
+    {
+        (*env)->ReleaseByteArrayElements(env, array, elements, 0);
+    }
+    if (array) 
+    {
+        (*env)->DeleteLocalRef(env, array); 
+    }
+    return ret;
+#undef __MIN
+}
+
+static int
+media_source_cb_seek(void *opaque, uint64_t offset)
+{
+    JNIEnv *env = NULL;
+    if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
+    {
+        LOGE("jni get env failed when media_source_cb_seek\n");
+        return -1;
+    }
+    jobject source = opaque;
+
+    (*env)->CallVoidMethod(env, source, fields.IVLCMediaSource.OpenedSource.seekID, (jlong) offset);
+    if ((*env)->ExceptionCheck(env))
+    {
+        LOGE("IVLCMediaSource seek error\n");
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);
+        return -1;
+    }
+
+    return 0;
+}
+
+static void
+media_source_cb_close(void *opaque)
+{
+    JNIEnv *env = NULL;
+    if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
+    {
+        LOGE("jni get env failed when media_source_cb_close\n");
+        return;
+    }
+    (*env)->CallVoidMethod(env, (jobject)opaque, fields.IVLCMediaSource.OpenedSource.closeID);
+    (*env)->ExceptionClear(env);
+    (*env)->DeleteGlobalRef(env, (jobject)opaque);
+}
+
 void Java_org_videolan_libvlc_Media_nativeNewFromVLCMediaSource(JNIEnv *env, jobject thiz,
                                                                 jobject libVlc, jobject mediaSource)
 {
@@ -181,144 +371,7 @@ void Java_org_videolan_libvlc_Media_nativeNewFromVLCMediaSource(JNIEnv *env, job
                                    media_source_cb_close,
                                    p_obj);
 
-    Media_nativeNewCommon(env, thiz, p_obj)
-}
-
-static int
-media_source_cb_open(void *opaque, void **datap, uint64_t *sizep)
-{
-    vlcjni_object *p_obj = opaque;
-    JNIEnv *env = NULL;
-    if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
-    {
-        LOGE("jni get env failed when media_source_cb_open\n");
-        return -1;
-    }
-    jobject mediaSource = NULL;
-    if (p_obj->p_owner && p_obj->p_owner->weak)
-    {
-        mediaSource = (*env)->GetObjectField(env, p_obj->p_owner->weak, fields.Media.mMediaSourceID);
-    }
-    if (!mediaSource)
-    {
-        LOGE("unable to get mediaSource\n");
-        return -2;
-    }
-
-    jobject openedSource = (*env)->CallObjectMethod(env, mediaSource, fields.IVLCMediaSource.openID);
-    if ((*env)->ExceptionCheck(env))
-    {
-        (*env)->ExceptionDescribe(env);
-        (*env)->ExceptionClear(env);
-        return -3;
-    }
-
-    jlong len = (*env)->CallObjectMethod(env, openedSource, fields.IVLCMediaSource.OpendSource.lengthID);
-    if ((*env)->ExceptionCheck(env))
-    {
-        (*env)->ExceptionDescribe(env);
-        (*env)->ExceptionClear(env);
-        return -4;
-    }
-
-    *sizep = (uint64_t)len;
-    jobject globalOpenedSource = (*env)->NewGlobalRef(env, openedSource);
-    if (globalOpenedSource == NULL)
-    {
-        LOGE("Failed to create global reference for openedSource\n");
-        return -5;
-    }
-
-    *datap = globalOpenedSource;
-
-    return 0;
-}
-
-static ssize_t
-media_source_cb_read(void *opaque, unsigned char *buf, size_t len)
-{
-    JNIEnv *env = NULL;
-    if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
-    {
-        LOGE("jni get env failed when media_source_cb_read\n");
-        return -1;
-    }
-    jobject source = opaque;
-    jbyteArray array = (*env)->NewByteArray(env, (jsize) len);
-    if (!array)
-    {
-        LOGE("jni NewByteArray failed\n");
-        return -1;
-    }
-
-    jint readSize = (*env)->CallIntMethod(env, source, fileds.IVLCMediaSource.OpendSource.readID, array, (jint) len);
-    if ((*env)->ExceptionCheck(env))
-    {
-        (*env)->ExceptionDescribe(env);
-        (*env)->ExceptionClear(env);
-        return -1;
-    }
-    if (readSize != 0)
-    {
-        LOGE("IVLCMediaSource error: read returns %d.\n", readSize);
-        return -1;
-    }
-    if (readSize == 0)
-    {
-        return 0;
-    }
-    
-    jbyte *elements = (*env)->GetByteArrayElements(env, array, 0);
-    if (elements == NULL)
-    {
-        LOGE("Failed to get byte array elements\n");
-        return -1;
-    }
-
-    memcpy(buf, elements, readSize);
-    (*env)->ReleaseByteArrayElements(env, array, elements, 0);
-
-    return readSize;
-}
-
-static int
-media_source_cb_seek(void *opaque, uint64_t offset)
-{
-    JNIEnv *env = NULL;
-    if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
-    {
-        LOGE("jni get env failed when media_source_cb_seek\n");
-        return -1;
-    }
-    jobject source = opaque;
-
-    jint seekRet = (*env)->CallIntMethod(env, source, fileds.IVLCMediaSource.OpendSource.seekID, (jlong) offset);
-    if ((*env)->ExceptionCheck(env))
-    {
-        (*env)->ExceptionDescribe(env);
-        (*env)->ExceptionClear(env);
-        return -1;
-    }
-    if (seekRet != 0) {
-        LOGE("IVLCMediaSource error: read returns %d.\n", seekRet);
-        return -1;
-    }
-
-    return 0;
-}
-
-static void
-media_source_cb_close(void *opaque)
-{
-    JNIEnv *env = NULL;
-    if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
-    {
-        LOGE("jni get env failed when media_source_cb_close\n");
-        return;
-    }
-    (*env)->CallVoidMethod(env, (jobject)opaque, fileds.IVLCMediaSource.OpendSource.closeID);
-    (*env)->ExceptionClear(env);
-    (*env)->DeleteGlobalRef(env, (jobject)opaque);
+    Media_nativeNewCommon(env, thiz, p_obj);
 }
 
 void

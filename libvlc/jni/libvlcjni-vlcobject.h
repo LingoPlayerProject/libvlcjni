@@ -40,6 +40,12 @@ typedef struct vlcjni_object_owner vlcjni_object_owner;
 typedef struct vlcjni_object_sys vlcjni_object_sys;
 typedef struct java_event java_event;
 
+/* event manager callback dispatched to native struct implementing a
+ * vlcjni_object. If the callback returns true, the event is dispatched to Java
+ * */
+typedef bool (*event_cb)(vlcjni_object *p_obj, const libvlc_event_t *p_ev,
+                         java_event *p_java_event);
+
 struct vlcjni_object
 {
     /* Pointer to parent libvlc: NULL if the VLCObject is a LibVLC */
@@ -61,6 +67,16 @@ struct vlcjni_object
     vlcjni_object_sys *p_sys;
 };
 
+struct vlcjni_object_owner
+{
+    jweak weak;
+
+    libvlc_event_manager_t *p_event_manager;
+    const int *p_events;
+
+    event_cb pf_event_cb;
+};
+
 struct java_event
 {
     jint type;
@@ -69,13 +85,6 @@ struct java_event
     jfloat argf1;
     const char* argc1;
 };
-
-/* event manager callback dispatched to native struct implementing a
- * vlcjni_object. If the callback returns true, the event is dispatched to Java
- * */
-typedef bool (*event_cb)(vlcjni_object *p_obj, const libvlc_event_t *p_ev,
-                         java_event *p_java_event);
-
 
 vlcjni_object *VLCJniObject_getInstance(JNIEnv *env, jobject thiz);
 

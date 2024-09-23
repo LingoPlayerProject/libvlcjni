@@ -123,7 +123,7 @@ struct fields {
             jmethodID readID;
             jmethodID seekID;
             jmethodID closeID;
-        } OpendSource;  
+        } OpenedSource;  
         jclass clazz;
         jmethodID openID;
     } IVLCMediaSource;
