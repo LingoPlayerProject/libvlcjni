@@ -279,7 +279,7 @@ media_source_cb_read(void *opaque, unsigned char *buf, size_t len)
         }
         if (readSize < 0 || readSize > len)
         {
-            LOGI("IVLCMediaSource error, read returned invalid len %s\n", readSize);
+            LOGI("IVLCMediaSource error, read returned invalid len %d\n", readSize);
             ret = -1;
             break;
         }

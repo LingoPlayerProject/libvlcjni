@@ -42,11 +42,31 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt' // TODO
         }
         dev {
             initWith debug
             matchingFallbacks = ['debug']
+        }
+    }
+
+    if (project.hasProperty('RETAIN_RELEASE_DEBUG_INFO')) {
+        // ./gradlew -PRETAIN_DEBUG_INFO=true
+        println "RETAIN_RELEASE_DEBUG_INFO is enabled"
+        sourceSets {
+            release {
+                jniLibs.srcDirs += ['jni/obj/local']
+            }
+        }
+        buildTypes {
+            release {
+                jniDebuggable true
+            }
+        }
+        androidComponents {
+            onVariants(selector().withBuildType("release")) {
+                packaging.jniLibs.keepDebugSymbols.add("**/*.so")
+            }
         }
     }
 
@@ -106,7 +126,11 @@ def libvlcRevision() {
 def vlcRevision() {
     def vlc = new ByteArrayOutputStream()
     exec {
-        commandLine 'sh', '-c', 'cd ../../vlc  && git rev-parse --short HEAD'
+        if (System.getProperty('os.name').toLowerCase().contains("win")) {
+            commandLine 'cmd', '/c', 'cd ../../vlc  && git rev-parse --short HEAD'
+        } else {
+            commandLine 'sh', '-c', 'cd ../../vlc  && git rev-parse --short HEAD'
+        }
         standardOutput = vlc
     }
     return vlc.toString()
