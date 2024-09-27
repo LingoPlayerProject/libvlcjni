@@ -7,7 +7,7 @@ ext {
     library_version = "$rootProject.ext.libvlcVersion"
 }
 android {
-
+    ndkVersion '21.0.6113669'
     defaultConfig {
         compileSdkVersion rootProject.ext.compileSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
@@ -50,20 +50,30 @@ android {
         }
     }
 
-    if (project.hasProperty('RETAIN_RELEASE_DEBUG_INFO')) {
+    if (project.hasProperty('RETAIN_DEBUG_INFO')) {
         // ./gradlew -PRETAIN_DEBUG_INFO=true
-        println "RETAIN_RELEASE_DEBUG_INFO is enabled"
+        println "RETAIN_DEBUG_INFO is enabled"
         sourceSets {
+            debug {
+                jniLibs.srcDirs += ['jni/obj/local']
+            }
             release {
                 jniLibs.srcDirs += ['jni/obj/local']
             }
         }
         buildTypes {
+            debug {
+                jniDebuggable true
+            }
             release {
                 jniDebuggable true
             }
         }
         androidComponents {
+            onVariants(selector().withBuildType("debug")) {
+                packaging.jniLibs.keepDebugSymbols.add("**/*.so")
+            }
+            // Make published aar file to ratain debug symbol
             onVariants(selector().withBuildType("release")) {
                 packaging.jniLibs.keepDebugSymbols.add("**/*.so")
             }

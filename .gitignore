@@ -11,6 +11,7 @@ application/app/src/main/assets/
 .gdb
 # debug symbols
 .dbg
+.cxx/
 
 # Local configuration
 local.properties

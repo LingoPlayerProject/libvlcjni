@@ -7,6 +7,7 @@ set -e
 #############
 
 AVLC_RELEASE=$RELEASE
+NO_OPTIM=0
 # Indicated if prebuilt contribs package
 # should be created
 AVLC_MAKE_PREBUILT_CONTRIBS=0
@@ -32,6 +33,9 @@ while [ $# -gt 0 ]; do
             ;;
         --with-prebuilt-contribs)
             AVLC_USE_PREBUILT_CONTRIBS=1
+            ;;
+        --no-optimize)
+            NO_OPTIM=1
             ;;
     esac
     shift
@@ -157,6 +161,7 @@ fi
 
 if [ "$NO_OPTIM" = "1" ];
 then
+    echo "used compile option: --no-optimize"    
      VLC_CFLAGS="-g -O0"
 else
      VLC_CFLAGS="-g -O2"
