@@ -274,7 +274,6 @@ media_source_cb_read(void *opaque, unsigned char *buf, size_t len)
         if (readSize == 0)
         {
             LOGI("IVLCMediaSource read EOF\n");
-            ret = 0;
             break;
         }
         if (readSize < 0 || readSize > len)
