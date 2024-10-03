@@ -2,6 +2,8 @@ package org.videolan.libvlc.interfaces;
 
 import android.net.Uri;
 
+import java.util.Objects;
+
 public interface IMedia extends IVLCObject<IMedia.Event> {
     class Event extends AbstractVLCEvent {
         public static final int MetaChanged = 0;
@@ -285,11 +287,22 @@ public interface IMedia extends IVLCObject<IMedia.Event> {
          */
         public final int priority;
         public final String uri;
+        public final IVLCMediaSource mediaSource;
 
         public Slave(int type, int priority, String uri) {
+            Objects.requireNonNull(uri);
             this.type = type;
             this.priority = priority;
             this.uri = uri;
+            this.mediaSource = null;
+        }
+
+        public Slave(int type, int priority, IVLCMediaSource mediaSource) {
+            Objects.requireNonNull(mediaSource);
+            this.type = type;
+            this.priority = priority;
+            this.uri = null;
+            this.mediaSource = mediaSource;
         }
     }
 

@@ -39,6 +39,7 @@ typedef struct vlcjni_object vlcjni_object;
 typedef struct vlcjni_object_owner vlcjni_object_owner;
 typedef struct vlcjni_object_sys vlcjni_object_sys;
 typedef struct java_event java_event;
+typedef struct vlcjni_jobject_ref_node vlcjni_jobject_ref_node;
 
 /* event manager callback dispatched to native struct implementing a
  * vlcjni_object. If the callback returns true, the event is dispatched to Java
@@ -75,6 +76,11 @@ struct vlcjni_object_owner
     const int *p_events;
 
     event_cb pf_event_cb;
+};
+
+struct vlcjni_jobject_ref_node {
+    jobject ref;
+    vlcjni_jobject_ref_node* next;
 };
 
 struct java_event

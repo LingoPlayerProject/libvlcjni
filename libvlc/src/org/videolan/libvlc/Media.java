@@ -566,7 +566,11 @@ public class Media extends VLCObject<IMedia.Event> implements IMedia {
      * before the media is played (via {@link MediaPlayer#play()})
      */
     public void addSlave(Slave slave) {
-        nativeAddSlave(slave.type, slave.priority, slave.uri);
+        if (slave.mediaSource != null) {
+            nativeAddSlaveFromMediaSource(slave.type, slave.priority, slave.mediaSource);
+        } else {
+            nativeAddSlave(slave.type, slave.priority, slave.uri);
+        }
     }
 
     /**
@@ -621,6 +625,7 @@ public class Media extends VLCObject<IMedia.Event> implements IMedia {
     private native int nativeGetType();
     private native void nativeAddOption(String option);
     private native void nativeAddSlave(int type, int priority, String uri);
+    private native void nativeAddSlaveFromMediaSource(int type, int priority, IVLCMediaSource mediaSource);
     private native void nativeClearSlaves();
     private native Slave[] nativeGetSlaves();
     private native Stats nativeGetStats();

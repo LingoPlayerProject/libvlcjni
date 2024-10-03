@@ -49,6 +49,8 @@ struct vlcjni_object_sys
         uint64_t offset;
         uint64_t length;
     } media_cb;
+    jobject master_media_source;
+    vlcjni_jobject_ref_node* p_slave_media_sources;
 };
 static const libvlc_event_type_t m_events[] = {
     libvlc_MediaMetaChanged,
@@ -362,15 +364,31 @@ void Java_org_videolan_libvlc_Media_nativeNewFromVLCMediaSource(JNIEnv *env, job
         return;
     }
 
+    jobject globalRef = (*env)->NewGlobalRef(env, mediaSource);
+    if (globalRef == NULL)
+    {
+        throw_Exception(env, VLCJNI_EX_RUNTIME,
+                "can't create media_source gloabl ref");
+                    p_obj->p_sys = calloc(1, sizeof(vlcjni_object_sys));
+        return;
+    }
     p_obj->u.p_m =
         libvlc_media_new_callbacks(p_obj->p_libvlc,
                                    media_source_cb_open,
                                    media_source_cb_read,
                                    media_source_cb_seek,
                                    media_source_cb_close,
-                                   p_obj);
+                                   globalRef);
 
-    Media_nativeNewCommon(env, thiz, p_obj);
+    int ret = Media_nativeNewCommon(env, thiz, p_obj);
+    if (ret)
+    {
+        (*env)->DeleteGlobalRef(env, globalRef);
+    }
+    else
+    {
+        p_obj->p_sys->master_media_source = globalRef;
+    }
 }
 
 void
@@ -514,7 +532,6 @@ Java_org_videolan_libvlc_Media_nativeNewFromFdWithOffsetLength(
                                    media_cb_close,
                                    p_obj);
 
-
     if (Media_nativeNewCommon(env, thiz, p_obj) == 0)
     {
         vlcjni_object_sys *p_sys = p_obj->p_sys;
@@ -556,6 +573,21 @@ Java_org_videolan_libvlc_Media_nativeRelease(JNIEnv *env, jobject thiz)
     p_sys = p_obj->p_sys;
 
     libvlc_media_release(p_obj->u.p_m);
+
+    if (p_obj->p_sys->master_media_source)
+    {
+        (*env)->DeleteGlobalRef(env, p_obj->p_sys->master_media_source);
+    }
+
+    vlcjni_jobject_ref_node *cur = p_obj->p_sys->p_slave_media_sources;
+    while (cur != NULL)
+    {
+        vlcjni_jobject_ref_node *next = cur->next;
+        (*env)->DeleteGlobalRef(env, cur->ref);
+        free(cur);
+        cur = next;
+    }
+    p_obj->p_sys->p_slave_media_sources = NULL;
 
     pthread_mutex_destroy(&p_obj->p_sys->lock);
     pthread_cond_destroy(&p_obj->p_sys->wait);
@@ -865,6 +897,46 @@ Java_org_videolan_libvlc_Media_nativeAddSlave(JNIEnv *env, jobject thiz,
 }
 
 void
+Java_org_videolan_libvlc_Media_nativeAddSlaveFromMediaSource(JNIEnv *env, jobject thiz,
+                                              jint type, jint priority,
+                                              jobject media_source)
+{
+    vlcjni_object *p_obj = VLCJniObject_getInstance(env, thiz);
+
+    if (!p_obj || !media_source)
+        return;
+
+    jobject gloablRef = (*env)->NewGlobalRef(env, media_source);
+    if (gloablRef == NULL)
+    {
+        throw_Exception(env, VLCJNI_EX_RUNTIME,
+                "can't create media_source gloabl ref");
+        return;
+    }
+
+    int i_ret = libvlc_media_slaves_add_callbacks(p_obj->u.p_m, type, priority,
+                                                  media_source_cb_open,
+                                                  media_source_cb_read,
+                                                  media_source_cb_seek,
+                                                  media_source_cb_close,
+                                                  gloablRef);
+
+    if (i_ret != 0)
+    {
+        (*env)->DeleteGlobalRef(env, gloablRef);
+        throw_Exception(env, VLCJNI_EX_ILLEGAL_ARGUMENT,
+                        "can't add slaves to libvlc_media");
+    }
+    else
+    {
+        vlcjni_jobject_ref_node *node = calloc(1, sizeof(vlcjni_jobject_ref_node));
+        node->ref = gloablRef;
+        node->next = p_obj->p_sys->p_slave_media_sources;
+        p_obj->p_sys->p_slave_media_sources = node;
+    }
+}
+
+void
 Java_org_videolan_libvlc_Media_nativeClearSlaves(JNIEnv *env, jobject thiz)
 {
     vlcjni_object *p_obj = VLCJniObject_getInstance(env, thiz);
@@ -872,6 +944,16 @@ Java_org_videolan_libvlc_Media_nativeClearSlaves(JNIEnv *env, jobject thiz)
     if (!p_obj)
         return;
 
+    vlcjni_jobject_ref_node *cur = p_obj->p_sys->p_slave_media_sources;
+    while (cur != NULL)
+    {
+        vlcjni_jobject_ref_node *next = cur->next;
+        (*env)->DeleteGlobalRef(env, cur->ref);
+        free(cur);
+        cur = next;
+    }
+    p_obj->p_sys->p_slave_media_sources = NULL;
+    
     libvlc_media_slaves_clear(p_obj->u.p_m);
 }
 
