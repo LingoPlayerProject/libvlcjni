@@ -117,7 +117,6 @@ public class Media extends VLCObject<IMedia.Event> implements IMedia {
     private boolean mCodecOptionSet = false;
     private boolean mFileCachingSet = false;
     private boolean mNetworkCachingSet = false;
-    private IVLCMediaSource mMediaSource = null;
 
     /**
      * Create a Media from libVLC and a local path starting with '/'.
@@ -180,8 +179,7 @@ public class Media extends VLCObject<IMedia.Event> implements IMedia {
         if (mediaSource == null) {
             throw new IllegalArgumentException("mediaSource is null");
         }
-        this.mMediaSource = mediaSource;
-        nativeNewFromVLCMediaSource(ILibVLC, mMediaSource);
+        nativeNewFromVLCMediaSource(ILibVLC, mediaSource);
     }
 
     /**

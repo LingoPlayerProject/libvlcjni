@@ -171,27 +171,15 @@ static int
 media_source_cb_open(void *opaque, void **datap, uint64_t *sizep)
 {
     int ret = 0;
-    vlcjni_object *p_obj = opaque;
+    jobject mediaSource = opaque;
     JNIEnv *env = NULL;
     if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
     {
         LOGE("jni get env failed when media_source_cb_open\n");
         return -1;
     }
-    jobject mediaSource = NULL;
-    if (p_obj->p_owner && p_obj->p_owner->weak)
-    {
-        mediaSource = (*env)->GetObjectField(env, p_obj->p_owner->weak, fields.Media.mMediaSourceID);
-    }
-    if (!mediaSource)
-    {
-        LOGE("unable to get mediaSource object\n");
-        return -1;
-    }
 
     jobject openedSource = (*env)->CallObjectMethod(env, mediaSource, fields.IVLCMediaSource.openID);
-    (*env)->DeleteLocalRef(env, mediaSource); 
-    mediaSource = NULL;
     if ((*env)->ExceptionCheck(env))
     {
         LOGE("open source failed.\n");

@@ -210,11 +210,6 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
            fields.MediaPlayer.Equalizer.clazz,
            "mInstance", "J");
 
-    GET_ID(GetFieldID,
-           fields.Media.mMediaSourceID,
-           fields.Media.clazz,
-           "mMediaSource", "Lorg/videolan/libvlc/interfaces/IVLCMediaSource;");
-
     GET_ID(GetMethodID,
            fields.VLCObject.dispatchEventFromNativeID,
            fields.VLCObject.clazz,

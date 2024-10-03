@@ -64,7 +64,6 @@ struct fields {
         } Slave;
 
         jclass clazz;
-        jfieldID mMediaSourceID;
         jmethodID createAudioTrackFromNativeID;
         jmethodID createVideoTrackFromNativeID;
         jmethodID createSubtitleTrackFromNativeID;
