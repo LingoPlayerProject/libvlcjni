@@ -28,7 +28,7 @@ import androidx.annotation.Nullable;
 import org.videolan.libvlc.interfaces.ILibVLC;
 import org.videolan.libvlc.interfaces.IMedia;
 import org.videolan.libvlc.interfaces.IMediaList;
-import org.videolan.libvlc.interfaces.IVLCMediaSource;
+import org.videolan.libvlc.interfaces.IDataSource;
 import org.videolan.libvlc.util.AndroidUtil;
 import org.videolan.libvlc.util.HWDecoderUtil;
 import org.videolan.libvlc.util.VLCUtil;
@@ -169,17 +169,17 @@ public class Media extends VLCObject<IMedia.Event> implements IMedia {
     }
 
     /**
-     * Create a Media from IVLCMediaSource
+     * Create a Media from IDataSource
      *
      * @param ILibVLC a valid LibVLC
-     * @param mediaSource mediaSource
+     * @param dataSource dataSource
      */
-    public Media(ILibVLC ILibVLC, IVLCMediaSource mediaSource) {
+    public Media(ILibVLC ILibVLC, IDataSource dataSource) {
         super(ILibVLC);
-        if (mediaSource == null) {
-            throw new IllegalArgumentException("mediaSource is null");
+        if (dataSource == null) {
+            throw new IllegalArgumentException("dataSource is null");
         }
-        nativeNewFromVLCMediaSource(ILibVLC, mediaSource);
+        nativeNewFromDataSource(ILibVLC, dataSource);
     }
 
     /**
@@ -564,8 +564,8 @@ public class Media extends VLCObject<IMedia.Event> implements IMedia {
      * before the media is played (via {@link MediaPlayer#play()})
      */
     public void addSlave(Slave slave) {
-        if (slave.mediaSource != null) {
-            nativeAddSlaveFromMediaSource(slave.type, slave.priority, slave.mediaSource);
+        if (slave.dataSource != null) {
+            nativeAddSlaveFromMediaSource(slave.type, slave.priority, slave.dataSource);
         } else {
             nativeAddSlave(slave.type, slave.priority, slave.uri);
         }
@@ -606,7 +606,7 @@ public class Media extends VLCObject<IMedia.Event> implements IMedia {
     }
 
     /* JNI */
-    private native void nativeNewFromVLCMediaSource(ILibVLC ILibVLC, IVLCMediaSource mediaSource);
+    private native void nativeNewFromDataSource(ILibVLC ILibVLC, IDataSource dataSource);
     private native void nativeNewFromPath(ILibVLC ILibVLC, String path);
     private native void nativeNewFromLocation(ILibVLC ILibVLC, String location);
     private native void nativeNewFromFd(ILibVLC ILibVLC, FileDescriptor fd);
@@ -623,7 +623,7 @@ public class Media extends VLCObject<IMedia.Event> implements IMedia {
     private native int nativeGetType();
     private native void nativeAddOption(String option);
     private native void nativeAddSlave(int type, int priority, String uri);
-    private native void nativeAddSlaveFromMediaSource(int type, int priority, IVLCMediaSource mediaSource);
+    private native void nativeAddSlaveFromMediaSource(int type, int priority, IDataSource dataSource);
     private native void nativeClearSlaves();
     private native Slave[] nativeGetSlaves();
     private native Stats nativeGetStats();

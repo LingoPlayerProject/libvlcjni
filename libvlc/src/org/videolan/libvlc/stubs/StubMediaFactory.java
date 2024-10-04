@@ -6,7 +6,7 @@ import android.net.Uri;
 import org.videolan.libvlc.interfaces.IMediaFactory;
 import org.videolan.libvlc.interfaces.ILibVLC;
 import org.videolan.libvlc.interfaces.IMedia;
-import org.videolan.libvlc.interfaces.IVLCMediaSource;
+import org.videolan.libvlc.interfaces.IDataSource;
 
 import java.io.FileDescriptor;
 
@@ -32,7 +32,7 @@ public class StubMediaFactory implements IMediaFactory {
     }
 
     @Override
-    public IMedia getFromVLCMediaSource(ILibVLC ILibVLC, IVLCMediaSource mediaSource) {
-        return new StubMedia(ILibVLC, mediaSource);
+    public IMedia getFromDataSource(ILibVLC ILibVLC, IDataSource dataSource) {
+        return new StubMedia(ILibVLC, dataSource);
     }
 }

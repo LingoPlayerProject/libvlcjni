@@ -46,7 +46,7 @@ import org.videolan.libvlc.interfaces.AbstractVLCEvent;
 import org.videolan.libvlc.interfaces.ILibVLC;
 import org.videolan.libvlc.interfaces.IMedia;
 import org.videolan.libvlc.interfaces.IVLCVout;
-import org.videolan.libvlc.interfaces.IVLCMediaSource;
+import org.videolan.libvlc.interfaces.IDataSource;
 import org.videolan.libvlc.util.AndroidUtil;
 import org.videolan.libvlc.util.DisplayManager;
 import org.videolan.libvlc.util.VLCUtil;

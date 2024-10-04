@@ -12,5 +12,5 @@ public interface IMediaFactory extends IComponentFactory {
     IMedia getFromUri(ILibVLC ILibVLC, Uri uri);
     IMedia getFromFileDescriptor(ILibVLC ILibVLC, FileDescriptor fd);
     IMedia getFromAssetFileDescriptor(ILibVLC ILibVLC, AssetFileDescriptor assetFileDescriptor);
-    IMedia getFromVLCMediaSource(ILibVLC ILibVLC, IVLCMediaSource mediaSource);
+    IMedia getFromDataSource(ILibVLC ILibVLC, IDataSource dataSource);
 }

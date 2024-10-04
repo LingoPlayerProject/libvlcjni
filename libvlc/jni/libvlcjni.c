@@ -195,10 +195,10 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
               "org/videolan/libvlc/RendererDiscoverer$Description", true);
     GET_CLASS(fields.Dialog.clazz,
               "org/videolan/libvlc/Dialog", true);
-    GET_CLASS(fields.IVLCMediaSource.clazz,
-              "org/videolan/libvlc/interfaces/IVLCMediaSource", true);
-    GET_CLASS(fields.IVLCMediaSource.OpenedSource.clazz,
-              "org/videolan/libvlc/interfaces/IVLCMediaSource$OpenedSource", true);
+    GET_CLASS(fields.IDataSource.clazz,
+              "org/videolan/libvlc/interfaces/IDataSource", true);
+    GET_CLASS(fields.IDataSource.OpenedSource.clazz,
+              "org/videolan/libvlc/interfaces/IDataSource$OpenedSource", true);
 
     GET_ID(GetFieldID,
            fields.VLCObject.mInstanceID,
@@ -337,32 +337,32 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved)
            "(Lorg/videolan/libvlc/Dialog;FLjava/lang/String;)V");
 
     GET_ID(GetMethodID,
-           fields.IVLCMediaSource.openID,
-           fields.IVLCMediaSource.clazz,
+           fields.IDataSource.openID,
+           fields.IDataSource.clazz,
            "open",
-           "()Lorg/videolan/libvlc/interfaces/IVLCMediaSource$OpenedSource;");
+           "()Lorg/videolan/libvlc/interfaces/IDataSource$OpenedSource;");
 
     GET_ID(GetMethodID,
-           fields.IVLCMediaSource.OpenedSource.lengthID,
-           fields.IVLCMediaSource.OpenedSource.clazz,
+           fields.IDataSource.OpenedSource.lengthID,
+           fields.IDataSource.OpenedSource.clazz,
            "length",
            "()J");
 
     GET_ID(GetMethodID,
-           fields.IVLCMediaSource.OpenedSource.readID,
-           fields.IVLCMediaSource.OpenedSource.clazz,
+           fields.IDataSource.OpenedSource.readID,
+           fields.IDataSource.OpenedSource.clazz,
            "read",
            "([BI)I");
 
     GET_ID(GetMethodID,
-           fields.IVLCMediaSource.OpenedSource.seekID,
-           fields.IVLCMediaSource.OpenedSource.clazz,
+           fields.IDataSource.OpenedSource.seekID,
+           fields.IDataSource.OpenedSource.clazz,
            "seek",
            "(J)V");
 
     GET_ID(GetMethodID,
-           fields.IVLCMediaSource.OpenedSource.closeID,
-           fields.IVLCMediaSource.OpenedSource.clazz,
+           fields.IDataSource.OpenedSource.closeID,
+           fields.IDataSource.OpenedSource.clazz,
            "close",
            "()V");
 
@@ -400,8 +400,8 @@ void JNI_OnUnload(JavaVM* vm, void* reserved)
     (*env)->DeleteGlobalRef(env, fields.RendererDiscoverer.clazz);
     (*env)->DeleteGlobalRef(env, fields.RendererDiscoverer.Description.clazz);
     (*env)->DeleteGlobalRef(env, fields.Dialog.clazz);
-    (*env)->DeleteGlobalRef(env, fields.IVLCMediaSource.clazz);
-    (*env)->DeleteGlobalRef(env, fields.IVLCMediaSource.OpenedSource.clazz);
+    (*env)->DeleteGlobalRef(env, fields.IDataSource.clazz);
+    (*env)->DeleteGlobalRef(env, fields.IDataSource.OpenedSource.clazz);
 
     pthread_key_delete(jni_env_key);
 

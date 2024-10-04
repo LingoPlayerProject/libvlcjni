@@ -125,7 +125,7 @@ struct fields {
         } OpenedSource;  
         jclass clazz;
         jmethodID openID;
-    } IVLCMediaSource;
+    } IDataSource;
 };
 
 static inline jstring vlcNewStringUTF(JNIEnv* env, const char* psz_string)

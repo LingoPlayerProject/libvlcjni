@@ -6,7 +6,7 @@ import android.net.Uri;
 import org.videolan.libvlc.interfaces.ILibVLC;
 import org.videolan.libvlc.interfaces.IMedia;
 import org.videolan.libvlc.interfaces.IMediaList;
-import org.videolan.libvlc.interfaces.IVLCMediaSource;
+import org.videolan.libvlc.interfaces.IDataSource;
 
 import java.io.FileDescriptor;
 
@@ -33,7 +33,7 @@ public class StubMedia extends StubVLCObject<IMedia.Event> implements IMedia {
         mILibVLC = ILibVLC;
     }
 
-    public StubMedia(ILibVLC ILibVLC,  IVLCMediaSource mediaSource) {
+    public StubMedia(ILibVLC ILibVLC,  IDataSource dataSource) {
         mILibVLC = ILibVLC;
     }
 

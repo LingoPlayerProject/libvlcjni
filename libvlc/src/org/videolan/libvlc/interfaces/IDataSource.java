@@ -2,7 +2,7 @@ package org.videolan.libvlc.interfaces;
 
 import java.io.IOException;
 
-public interface IVLCMediaSource {
+public interface IDataSource {
 
     public interface OpenedSource {
         /**

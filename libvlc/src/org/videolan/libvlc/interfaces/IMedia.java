@@ -287,22 +287,22 @@ public interface IMedia extends IVLCObject<IMedia.Event> {
          */
         public final int priority;
         public final String uri;
-        public final IVLCMediaSource mediaSource;
+        public final IDataSource dataSource;
 
         public Slave(int type, int priority, String uri) {
             Objects.requireNonNull(uri);
             this.type = type;
             this.priority = priority;
             this.uri = uri;
-            this.mediaSource = null;
+            this.dataSource = null;
         }
 
-        public Slave(int type, int priority, IVLCMediaSource mediaSource) {
-            Objects.requireNonNull(mediaSource);
+        public Slave(int type, int priority, IDataSource dataSource) {
+            Objects.requireNonNull(dataSource);
             this.type = type;
             this.priority = priority;
             this.uri = null;
-            this.mediaSource = mediaSource;
+            this.dataSource = dataSource;
         }
     }
 

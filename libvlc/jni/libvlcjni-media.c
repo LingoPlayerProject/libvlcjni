@@ -49,8 +49,8 @@ struct vlcjni_object_sys
         uint64_t offset;
         uint64_t length;
     } media_cb;
-    jobject master_media_source;
-    vlcjni_jobject_ref_node* p_slave_media_sources;
+    jobject master_data_source;
+    vlcjni_jobject_ref_node* p_slave_data_sources;
 };
 static const libvlc_event_type_t m_events[] = {
     libvlc_MediaMetaChanged,
@@ -168,18 +168,18 @@ Media_nativeNewFromCb(JNIEnv *env, jobject thiz, jobject libVlc, jstring jmrl,
 }
 
 static int
-media_source_cb_open(void *opaque, void **datap, uint64_t *sizep)
+data_source_cb_open(void *opaque, void **datap, uint64_t *sizep)
 {
     int ret = 0;
-    jobject mediaSource = opaque;
+    jobject dataSource = opaque;
     JNIEnv *env = NULL;
     if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
     {
-        LOGE("jni get env failed when media_source_cb_open\n");
+        LOGE("jni get env failed when data_source_cb_open\n");
         return -1;
     }
 
-    jobject openedSource = (*env)->CallObjectMethod(env, mediaSource, fields.IVLCMediaSource.openID);
+    jobject openedSource = (*env)->CallObjectMethod(env, dataSource, fields.IDataSource.openID);
     if ((*env)->ExceptionCheck(env))
     {
         LOGE("open source failed.\n");
@@ -189,12 +189,12 @@ media_source_cb_open(void *opaque, void **datap, uint64_t *sizep)
 
     if (!openedSource) 
     {
-        LOGE("IVLCMediaSource error: open returns null.\n");
+        LOGE("IDataSource error: open returns null.\n");
         ret = -1;
         goto error;
     }
 
-    jlong len = (*env)->CallLongMethod(env, openedSource, fields.IVLCMediaSource.OpenedSource.lengthID);
+    jlong len = (*env)->CallLongMethod(env, openedSource, fields.IDataSource.OpenedSource.lengthID);
     if ((*env)->ExceptionCheck(env))
     {
         ret = -1;
@@ -221,7 +221,7 @@ error:
         // Manual release is required because this is a C callback and there is no JNI call to perform automatic release
         if (ret != 0) 
         {
-            (*env)->CallVoidMethod(env, openedSource, fields.IVLCMediaSource.OpenedSource.closeID);
+            (*env)->CallVoidMethod(env, openedSource, fields.IDataSource.OpenedSource.closeID);
         }
         (*env)->DeleteLocalRef(env, openedSource); 
     }
@@ -229,13 +229,13 @@ error:
 }
 
 static ssize_t
-media_source_cb_read(void *opaque, unsigned char *buf, size_t len)
+data_source_cb_read(void *opaque, unsigned char *buf, size_t len)
 {
 #define __MIN(a, b) ( ((a) < (b)) ? (a) : (b) )
     JNIEnv *env = NULL;
     if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
     {
-        LOGE("jni get env failed when media_source_cb_read\n");
+        LOGE("jni get env failed when data_source_cb_read\n");
         return -1;
     }
     jobject source = opaque;
@@ -254,21 +254,21 @@ media_source_cb_read(void *opaque, unsigned char *buf, size_t len)
             LOGE("jni NewByteArray failed\n");
             break;
         }
-        readSize = (*env)->CallIntMethod(env, source, fields.IVLCMediaSource.OpenedSource.readID, array, (jint) tmpSize);
+        readSize = (*env)->CallIntMethod(env, source, fields.IDataSource.OpenedSource.readID, array, (jint) tmpSize);
         if ((*env)->ExceptionCheck(env))
         {
-            LOGE("IVLCMediaSource read failed\n");
+            LOGE("IDataSource read failed\n");
             ret = -1;
             break;
         }
         if (readSize == 0)
         {
-            LOGI("IVLCMediaSource read EOF\n");
+            LOGI("IDataSource read EOF\n");
             break;
         }
         if (readSize < 0 || readSize > len)
         {
-            LOGI("IVLCMediaSource error, read returned invalid len %d\n", readSize);
+            LOGI("IDataSource error, read returned invalid len %d\n", readSize);
             ret = -1;
             break;
         }
@@ -306,20 +306,20 @@ media_source_cb_read(void *opaque, unsigned char *buf, size_t len)
 }
 
 static int
-media_source_cb_seek(void *opaque, uint64_t offset)
+data_source_cb_seek(void *opaque, uint64_t offset)
 {
     JNIEnv *env = NULL;
     if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
     {
-        LOGE("jni get env failed when media_source_cb_seek\n");
+        LOGE("jni get env failed when data_source_cb_seek\n");
         return -1;
     }
     jobject source = opaque;
 
-    (*env)->CallVoidMethod(env, source, fields.IVLCMediaSource.OpenedSource.seekID, (jlong) offset);
+    (*env)->CallVoidMethod(env, source, fields.IDataSource.OpenedSource.seekID, (jlong) offset);
     if ((*env)->ExceptionCheck(env))
     {
-        LOGE("IVLCMediaSource seek error\n");
+        LOGE("IDataSource seek error\n");
         (*env)->ExceptionDescribe(env);
         (*env)->ExceptionClear(env);
         return -1;
@@ -329,21 +329,21 @@ media_source_cb_seek(void *opaque, uint64_t offset)
 }
 
 static void
-media_source_cb_close(void *opaque)
+data_source_cb_close(void *opaque)
 {
     JNIEnv *env = NULL;
     if (!(env = jni_get_env(THREAD_NAME_MEDIA_CB)))
     {
-        LOGE("jni get env failed when media_source_cb_close\n");
+        LOGE("jni get env failed when data_source_cb_close\n");
         return;
     }
-    (*env)->CallVoidMethod(env, (jobject)opaque, fields.IVLCMediaSource.OpenedSource.closeID);
+    (*env)->CallVoidMethod(env, (jobject)opaque, fields.IDataSource.OpenedSource.closeID);
     (*env)->ExceptionClear(env);
     (*env)->DeleteGlobalRef(env, (jobject)opaque);
 }
 
-void Java_org_videolan_libvlc_Media_nativeNewFromVLCMediaSource(JNIEnv *env, jobject thiz,
-                                                                jobject libVlc, jobject mediaSource)
+void Java_org_videolan_libvlc_Media_nativeNewFromDataSource(JNIEnv *env, jobject thiz,
+                                                                jobject libVlc, jobject dataSource)
 {
     vlcjni_object *p_obj;
     p_obj = VLCJniObject_newFromJavaLibVlc(env, thiz, libVlc);
@@ -352,20 +352,20 @@ void Java_org_videolan_libvlc_Media_nativeNewFromVLCMediaSource(JNIEnv *env, job
         return;
     }
 
-    jobject globalRef = (*env)->NewGlobalRef(env, mediaSource);
+    jobject globalRef = (*env)->NewGlobalRef(env, dataSource);
     if (globalRef == NULL)
     {
         throw_Exception(env, VLCJNI_EX_RUNTIME,
-                "can't create media_source gloabl ref");
+                "can't create data_source gloabl ref");
                     p_obj->p_sys = calloc(1, sizeof(vlcjni_object_sys));
         return;
     }
     p_obj->u.p_m =
         libvlc_media_new_callbacks(p_obj->p_libvlc,
-                                   media_source_cb_open,
-                                   media_source_cb_read,
-                                   media_source_cb_seek,
-                                   media_source_cb_close,
+                                   data_source_cb_open,
+                                   data_source_cb_read,
+                                   data_source_cb_seek,
+                                   data_source_cb_close,
                                    globalRef);
 
     int ret = Media_nativeNewCommon(env, thiz, p_obj);
@@ -375,7 +375,7 @@ void Java_org_videolan_libvlc_Media_nativeNewFromVLCMediaSource(JNIEnv *env, job
     }
     else
     {
-        p_obj->p_sys->master_media_source = globalRef;
+        p_obj->p_sys->master_data_source = globalRef;
     }
 }
 
@@ -562,12 +562,12 @@ Java_org_videolan_libvlc_Media_nativeRelease(JNIEnv *env, jobject thiz)
 
     libvlc_media_release(p_obj->u.p_m);
 
-    if (p_obj->p_sys->master_media_source)
+    if (p_obj->p_sys->master_data_source)
     {
-        (*env)->DeleteGlobalRef(env, p_obj->p_sys->master_media_source);
+        (*env)->DeleteGlobalRef(env, p_obj->p_sys->master_data_source);
     }
 
-    vlcjni_jobject_ref_node *cur = p_obj->p_sys->p_slave_media_sources;
+    vlcjni_jobject_ref_node *cur = p_obj->p_sys->p_slave_data_sources;
     while (cur != NULL)
     {
         vlcjni_jobject_ref_node *next = cur->next;
@@ -575,7 +575,7 @@ Java_org_videolan_libvlc_Media_nativeRelease(JNIEnv *env, jobject thiz)
         free(cur);
         cur = next;
     }
-    p_obj->p_sys->p_slave_media_sources = NULL;
+    p_obj->p_sys->p_slave_data_sources = NULL;
 
     pthread_mutex_destroy(&p_obj->p_sys->lock);
     pthread_cond_destroy(&p_obj->p_sys->wait);
@@ -887,26 +887,26 @@ Java_org_videolan_libvlc_Media_nativeAddSlave(JNIEnv *env, jobject thiz,
 void
 Java_org_videolan_libvlc_Media_nativeAddSlaveFromMediaSource(JNIEnv *env, jobject thiz,
                                               jint type, jint priority,
-                                              jobject media_source)
+                                              jobject data_source)
 {
     vlcjni_object *p_obj = VLCJniObject_getInstance(env, thiz);
 
-    if (!p_obj || !media_source)
+    if (!p_obj || !data_source)
         return;
 
-    jobject gloablRef = (*env)->NewGlobalRef(env, media_source);
+    jobject gloablRef = (*env)->NewGlobalRef(env, data_source);
     if (gloablRef == NULL)
     {
         throw_Exception(env, VLCJNI_EX_RUNTIME,
-                "can't create media_source gloabl ref");
+                "can't create data_source gloabl ref");
         return;
     }
 
     int i_ret = libvlc_media_slaves_add_callbacks(p_obj->u.p_m, type, priority,
-                                                  media_source_cb_open,
-                                                  media_source_cb_read,
-                                                  media_source_cb_seek,
-                                                  media_source_cb_close,
+                                                  data_source_cb_open,
+                                                  data_source_cb_read,
+                                                  data_source_cb_seek,
+                                                  data_source_cb_close,
                                                   gloablRef);
 
     if (i_ret != 0)
@@ -919,8 +919,8 @@ Java_org_videolan_libvlc_Media_nativeAddSlaveFromMediaSource(JNIEnv *env, jobjec
     {
         vlcjni_jobject_ref_node *node = calloc(1, sizeof(vlcjni_jobject_ref_node));
         node->ref = gloablRef;
-        node->next = p_obj->p_sys->p_slave_media_sources;
-        p_obj->p_sys->p_slave_media_sources = node;
+        node->next = p_obj->p_sys->p_slave_data_sources;
+        p_obj->p_sys->p_slave_data_sources = node;
     }
 }
 
@@ -932,7 +932,7 @@ Java_org_videolan_libvlc_Media_nativeClearSlaves(JNIEnv *env, jobject thiz)
     if (!p_obj)
         return;
 
-    vlcjni_jobject_ref_node *cur = p_obj->p_sys->p_slave_media_sources;
+    vlcjni_jobject_ref_node *cur = p_obj->p_sys->p_slave_data_sources;
     while (cur != NULL)
     {
         vlcjni_jobject_ref_node *next = cur->next;
@@ -940,7 +940,7 @@ Java_org_videolan_libvlc_Media_nativeClearSlaves(JNIEnv *env, jobject thiz)
         free(cur);
         cur = next;
     }
-    p_obj->p_sys->p_slave_media_sources = NULL;
+    p_obj->p_sys->p_slave_data_sources = NULL;
     
     libvlc_media_slaves_clear(p_obj->u.p_m);
 }
